@@ -3,6 +3,7 @@
 import argparse
 import obspy
 import os
+from typing import Union
 from collections import namedtuple
 from obspy import UTCDateTime
 
@@ -15,6 +16,10 @@ parser.add_argument('-i', '--input_dir', type=str, required=True, help='Director
                                                                        'Must exist.')
 parser.add_argument('-o', '--output_dir', type=str, required=True, help='Directory where to save output miniseeds. '
                                                                         'It will be created if necessary.')
+parser.add_argument('-r', '--order', type=str, default=None, help='Provide custom channel order in output stream. '
+                                                                    'If none, the order will be as found.')
+parser.add_argument('-s', '--dirstructure', type=bool, default=False, help='If True, seeds will be saved in dir structure '
+                                                                          'as Year/Month/Day/*.mseed'      )                                                                    
 parser.add_argument('-v', '--verbose', type=bool, default=True, help='Print all the steps in stdout?')
 
 args = parser.parse_args()
@@ -103,16 +108,34 @@ for di in dirs:
                         if verbose:
                             print('I just found second cochannel {}'.format(seedstruct_three.filepath))
                             print('I am starting to merge all channels.')
-                        st1 = obspy.read(seedstruct_one.filepath)
-                        st2 = obspy.read(seedstruct_two.filepath)
-                        st3 = obspy.read(seedstruct_three.filepath)
 
-                        st_res = st1 + st2 + st3
+                        channels = {}
+                        channels[seedstruct_one.channel[-1]] = seedstruct_one
+                        channels[seedstruct_two.channel[-1]] = seedstruct_two
+                        channels[seedstruct_three.channel[-1]] = seedstruct_three
+                        
+
+                        st_res = obspy.Stream()
+
+                        if args.order is not None:
+                            for ch in args.order:
+                                st_res.append(obspy.read(channels[ch].filepath)[0])
+                        else:
+                            for ch in channels.values:
+                                st_res.append(obspy.read(ch.filepath)[0])
+                        
+
 
                         output_filename = '_'.join([seedstruct_one.seedid[:-4],
                                                     seedstruct_one.date,
                                                     seedstruct_one.hour])
-                        result_filepath = os.path.join(curr_output_dir, output_filename+'.miniseed')
+                        if args.dirstructure:
+                            result_dir = os.path.join(output_dir, str(seedstruct_one.utc.year),
+                            str(seedstruct_one.utc.month), str(seedstruct_one.utc.day))
+                            os.makedirs(result_dir, exist_ok=True)
+                            result_filepath = os.path.join(result_dir, output_filename+'.miniseed')
+                        else:
+                            result_filepath = os.path.join(curr_output_dir, output_filename+'.miniseed')
 
                         if verbose:
                             print('Writting output file {}'.format(result_filepath))
