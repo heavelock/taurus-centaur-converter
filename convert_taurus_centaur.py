@@ -53,10 +53,8 @@ for di in dirs:
     curr_output_dir = os.path.join(output_dir, os.path.split(di)[-1])
     curr_output_dir = os.path.join(output_dir, os.path.split(di)[-1])
 
-    try:
-        os.makedirs(curr_output_dir)
-    except OSError:
-        pass
+    if not args.dirstructure:
+        os.makedirs(curr_output_dir, exist_ok=True)
 
     for seedname in seednames:
         filepath = os.path.join(di, seedname)
