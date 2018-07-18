@@ -8,6 +8,14 @@ from collections import namedtuple
 from obspy import UTCDateTime
 
 
+def add_zero_if_below_10(val):
+    if val < 10:
+        ret =  '0'+str(val)
+    else:
+        ret = str(val)
+    return ret
+
+
 parser = argparse.ArgumentParser(description='This script is made to convert Taurus miniseed structure (file per '
                                              'channel) to Centaur file structure (file per station). '
                                              'Groupping of channels is made only on the basis of filenames. '
@@ -28,22 +36,19 @@ input_dir = args.input_dir
 output_dir = args.output_dir
 verbose = args.verbose
 
+SeedStruct = namedtuple('SeedStruct', 'filepath seedid station channel date hour utc')
+
 if not os.path.exists(input_dir):
     raise BaseException("Provided input dir does not exists.")
-
 
 if not os.path.exists(output_dir):
     if verbose:
         print('Output dir does not exists. Trying to create')
     os.makedirs(output_dir)
 
-
 walky = list(os.walk(input_dir))
 
 dirs = [os.path.join(input_dir, x) for x in walky[0][1]]
-
-SeedStruct = namedtuple('SeedStruct', 'filepath seedid station channel date hour utc')
-
 
 for di in dirs:
     seednames = [x for x in os.listdir(di) if x[-4:] == 'seed']
@@ -122,14 +127,14 @@ for di in dirs:
                             for ch in channels.values:
                                 st_res.append(obspy.read(ch.filepath)[0])
                         
-
-
                         output_filename = '_'.join([seedstruct_one.seedid[:-4],
                                                     seedstruct_one.date,
                                                     seedstruct_one.hour])
                         if args.dirstructure:
-                            result_dir = os.path.join(output_dir, str(seedstruct_one.utc.year),
-                            str(seedstruct_one.utc.month), str(seedstruct_one.utc.day))
+                            result_dir = os.path.join(output_dir, 
+                                                      str(seedstruct_one.utc.year),
+                                                      add_zero_if_below_10(seedstruct_one.utc.month),
+                                                      add_zero_if_below_10(seedstruct_one.utc.day))
                             os.makedirs(result_dir, exist_ok=True)
                             result_filepath = os.path.join(result_dir, output_filename+'.miniseed')
                         else:
