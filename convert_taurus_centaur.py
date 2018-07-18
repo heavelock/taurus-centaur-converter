@@ -19,7 +19,7 @@ parser.add_argument('-o', '--output_dir', type=str, required=True, help='Directo
 parser.add_argument('-r', '--order', type=str, default=None, help='Provide custom channel order in output stream. '
                                                                     'If none, the order will be as found.')
 parser.add_argument('-s', '--dirstructure', type=bool, default=False, help='If True, seeds will be saved in dir structure '
-                                                                          'as Year/Month/Day/*.mseed'      )                                                                    
+                                                                          'as Year/Month/Day/*.mseed')                                                                    
 parser.add_argument('-v', '--verbose', type=bool, default=True, help='Print all the steps in stdout?')
 
 args = parser.parse_args()
