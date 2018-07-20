@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description='This script is made to convert Tau
                                              'channel) to Centaur file structure (file per station). '
                                              'Groupping of channels is made only on the basis of filenames. '
                                              'IT DOES NOT TAKE INTO ACCOUNT STARTTIMES OF SEEDS.')
-parser.add_argument('-i', '--input_dir', type=str, required=True, help='Directory containing input miniseeds. '
+parser.add_argument('-i', '--input_dir', type=str,  required=True, help='Directory containing input miniseeds. '
                                                                        'Must exist.')
 parser.add_argument('-o', '--output_dir', type=str, required=True, help='Directory where to save output miniseeds. '
                                                                         'It will be created if necessary.')
@@ -92,6 +92,8 @@ for di in dirs:
 
         if verbose:
             print('Staring to look for cochannels for seed {}'.format(seedstruct_one.filepath))
+        
+        merging_flag = False
 
         for j, seedstruct_two in enumerate(seedstructs):
             if j in skippy:
@@ -122,23 +124,45 @@ for di in dirs:
 
                         if args.order is not None:
                             for ch in args.order:
-                                st_res.append(obspy.read(channels[ch].filepath)[0])
+                                st = obspy.read(channels[ch].filepath)
+                                if len(st) > 1:
+                                    print('There are few traces in file {}. Will be merged with obspy.Stream.merge('
+                                          'method=0, fill_value="interpolate").'.format(channels[ch].filepath))
+                                    st.merge(method=0, fill_value='interpolate')
+                                    merging_flag = True
+
+                                st_res.append(st[0])
                         else:
-                            for ch in channels.values:
-                                st_res.append(obspy.read(ch.filepath)[0])
+                            for ch in channels.values():
+                                st = obspy.read(ch.filepath)
+                                if len(st) > 1:
+                                    print('There are few traces in file {}. Will be merged with obspy.Stream.merge('
+                                          'method=0, fill_value="interpolate").'.format(ch.filepath))
+                                    st.merge(method=0, fill_value='interpolate')
+                                    merging_flag = True
+
+                                st_res.append(st[0])
                         
-                        output_filename = '_'.join([seedstruct_one.seedid[:-4],
-                                                    seedstruct_one.date,
-                                                    seedstruct_one.hour])
+                        if merging_flag:
+                            output_filename = '_'.join([seedstruct_one.seedid[:-4],
+                                                        seedstruct_one.date,
+                                                        seedstruct_one.hour])
+                        else:
+                            output_filename = '_'.join([seedstruct_one.seedid[:-4],
+                                                        seedstruct_one.date,
+                                                        seedstruct_one.hour,
+                                                        'merged_traces'])
+                        output_filename += '.miniseed'
+
                         if args.dirstructure:
                             result_dir = os.path.join(output_dir, 
                                                       str(seedstruct_one.utc.year),
                                                       add_zero_if_below_10(seedstruct_one.utc.month),
                                                       add_zero_if_below_10(seedstruct_one.utc.day))
                             os.makedirs(result_dir, exist_ok=True)
-                            result_filepath = os.path.join(result_dir, output_filename+'.miniseed')
+                            result_filepath = os.path.join(result_dir, output_filename)
                         else:
-                            result_filepath = os.path.join(curr_output_dir, output_filename+'.miniseed')
+                            result_filepath = os.path.join(curr_output_dir, output_filename)
 
                         if verbose:
                             print('Writting output file {}'.format(result_filepath))
