@@ -7,6 +7,9 @@ from typing import Union
 from collections import namedtuple
 from obspy import UTCDateTime
 
+no_merged_traces = 0
+sample_deficit = []
+total_sample_deficit = []
 
 def add_zero_if_below_10(val):
     if val < 10:
@@ -15,11 +18,22 @@ def add_zero_if_below_10(val):
         ret = str(val)
     return ret
 
+def str2bool(v):
+    if v.lower() in ('True', 'yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('False', 'no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 parser = argparse.ArgumentParser(description='This script is made to convert Taurus miniseed structure (file per '
                                              'channel) to Centaur file structure (file per station). '
                                              'Groupping of channels is made only on the basis of filenames. '
                                              'IT DOES NOT TAKE INTO ACCOUNT STARTTIMES OF SEEDS.')
+parser.register('type',bool,str2bool) # add type keyword to registries
+
+
 parser.add_argument('-i', '--input_dir', type=str,  required=True, help='Directory containing input miniseeds. '
                                                                        'Must exist.')
 parser.add_argument('-o', '--output_dir', type=str, required=True, help='Directory where to save output miniseeds. '
@@ -128,6 +142,15 @@ for di in dirs:
                                 if len(st) > 1:
                                     print('There are few traces in file {}. Will be merged with obspy.Stream.merge('
                                           'method=0, fill_value="interpolate").'.format(channels[ch].filepath))
+                                    no_merged_traces += 1
+                                    total_sample_deficit.append(sum([len(tr.data) for tr in st]))
+                                    for i in range(1, len(st)):
+                                        if verbose:
+                                            print('endtime i-1 {}; starttime i {}\n'.format(st[i-1].stats.endtime, st[i].stats.starttime))
+                                            print('diff {}\n'.format((st[i].stats.starttime - st[i-1].stats.endtime)))
+                                            print('multi {}\n'.format((st[i].stats.starttime - st[i-1].stats.endtime)*250))
+                                        sample_deficit.append((st[i].stats.starttime - st[i-1].stats.endtime)*250)
+
                                     st.merge(method=0, fill_value='interpolate')
                                     merging_flag = True
 
@@ -174,3 +197,33 @@ for di in dirs:
 
 if verbose:
     print('Done')
+print('Merged traces in total: {}\n'.format(no_merged_traces))
+print('Total sample deficits in total: {}\n'.format(total_sample_deficit))
+print('No of gaps 0 samples: {} out of {}\n'.format(sum([0 == x for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<5 samples: {} out of {}\n'.format(sum([0 < x and x < 5 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<10 samples: {} out of {}\n'.format(sum([0 < x and x < 10 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<15 samples: {} out of {}\n'.format(sum([0 < x and x < 15 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<25 samples: {} out of {}\n'.format(sum([0 < x and x < 25 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<50 samples: {} out of {}\n'.format(sum([0 < x and x < 50 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<100 samples: {} out of {}\n'.format(sum([0 < x and x < 100 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps 0<x<250 samples: {} out of {}\n'.format(sum([0 < x and x < 250 for x in sample_deficit]), len(sample_deficit)))
+print('No of gaps x>=250 samples: {} out of {}\n'.format(sum([x >= 250 for x in sample_deficit]), len(sample_deficit)))
+
+print('Now, taking absolute value of sample deficits so taking into account overlaps')
+sample_deficit_abs = [abs(x) for x in sample_deficit]
+print('No of gaps 0 samples: {} out of {}\n'.format(sum([0 == x for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<5 samples: {} out of {}\n'.format(sum([0 < x and x < 5 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<10 samples: {} out of {}\n'.format(sum([0 < x and x < 10 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<15 samples: {} out of {}\n'.format(sum([0 < x and x < 15 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<25 samples: {} out of {}\n'.format(sum([0 < x and x < 25 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<50 samples: {} out of {}\n'.format(sum([0 < x and x < 50 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<100 samples: {} out of {}\n'.format(sum([0 < x and x < 100 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps 0<x<250 samples: {} out of {}\n'.format(sum([0 < x and x < 250 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+print('No of gaps x>=250 samples: {} out of {}\n'.format(sum([x >= 250 for x in sample_deficit_abs]), len(sample_deficit_abs)))
+
+
+import numpy as np
+
+np.save('no_merged_traces.np', np.array(no_merged_traces))
+np.save('sample_deficit.np', np.array(sample_deficit))
+np.save('total_sample_deficit.np', np.array(total_sample_deficit))
