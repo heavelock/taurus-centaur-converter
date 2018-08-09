@@ -166,15 +166,9 @@ for di in dirs:
 
                                 st_res.append(st[0])
                         
-                        if merging_flag:
-                            output_filename = '_'.join([seedstruct_one.seedid[:-4],
-                                                        seedstruct_one.date,
-                                                        seedstruct_one.hour])
-                        else:
-                            output_filename = '_'.join([seedstruct_one.seedid[:-4],
-                                                        seedstruct_one.date,
-                                                        seedstruct_one.hour,
-                                                        'merged_traces'])
+                        output_filename = '_'.join([seedstruct_one.seedid[:-4],
+                                                    seedstruct_one.date,
+                                                    seedstruct_one.hour])
                         output_filename += '.miniseed'
 
                         if args.dirstructure:
@@ -222,8 +216,4 @@ print('No of gaps 0<x<250 samples: {} out of {}\n'.format(sum([0 < x and x < 250
 print('No of gaps x>=250 samples: {} out of {}\n'.format(sum([x >= 250 for x in sample_deficit_abs]), len(sample_deficit_abs)))
 
 
-import numpy as np
-
-np.save('no_merged_traces.np', np.array(no_merged_traces))
-np.save('sample_deficit.np', np.array(sample_deficit))
-np.save('total_sample_deficit.np', np.array(total_sample_deficit))
+print('Total number of gappy seeds is: {}'.format(str(no_merged_traces)))
